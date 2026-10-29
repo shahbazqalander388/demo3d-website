@@ -74,10 +74,10 @@ export default function Footer({ onOpenBooking }) {
               Metropolitan Hubs
             </h4>
             <ul className="space-y-2 text-xs font-mono text-neutral-600">
-              {BRAND_INFO.globalHubs.map((hub) => (
-                <li key={hub} className="flex items-center gap-2">
+              {BRAND_INFO.globalHubs.map((hub, idx) => (
+                <li key={typeof hub === 'object' ? hub.city : idx} className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-                  <span>{hub} Private Terminal</span>
+                  <span>{typeof hub === 'object' ? `${hub.city} — ${hub.code}` : `${hub} Private Terminal`}</span>
                 </li>
               ))}
             </ul>
