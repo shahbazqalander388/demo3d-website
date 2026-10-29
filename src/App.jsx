@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
+import PorscheModelRange from './components/PorscheModelRange';
+import PorscheConfigurator from './components/PorscheConfigurator';
 import CoreServices from './components/CoreServices';
-import FleetShowcase from './components/FleetShowcase';
 import QuoteEstimator from './components/QuoteEstimator';
+import PorscheFinder from './components/PorscheFinder';
 import LiveTelemetryRadar from './components/LiveTelemetryRadar';
 import TrustMetrics from './components/TrustMetrics';
 import Testimonials from './components/Testimonials';
@@ -13,6 +15,7 @@ import BookingModal from './components/BookingModal';
 export default function App() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingInitialData, setBookingInitialData] = useState(null);
+  const [configuratorTargetModel, setConfiguratorTargetModel] = useState(null);
 
   const handleOpenBooking = (data = null) => {
     setBookingInitialData(data);
@@ -24,44 +27,68 @@ export default function App() {
     setBookingInitialData(null);
   };
 
-  const scrollToFleet = () => {
-    const el = document.getElementById('fleet');
+  const handleSelectForConfigurator = (model) => {
+    setConfiguratorTargetModel(model);
+    const el = document.getElementById('configurator');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToModels = () => {
+    const el = document.getElementById('models');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 selection:bg-neutral-900 selection:text-white">
-      {/* Sticky Glassmorphic Navbar (White Luxury Theme) */}
-      <Navbar onOpenBooking={handleOpenBooking} />
-
-      {/* Hero Section with Architectural 3D WebGL Black Car Studio */}
-      <HeroSection
+    <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white antialiased">
+      {/* Porsche Canada Inspired Persistent Navigation */}
+      <Navbar
         onOpenBooking={handleOpenBooking}
-        onExploreFleet={scrollToFleet}
+        onOpenConfigurator={() => {
+          const el = document.getElementById('configurator');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
       />
 
-      {/* Core Bespoke VIP Mobility Services */}
+      {/* Full-Bleed Cinematic Hero Section */}
+      <HeroSection
+        onOpenBooking={handleOpenBooking}
+        onExploreFleet={scrollToModels}
+      />
+
+      {/* Porsche Signature "Models." Grid Section */}
+      <PorscheModelRange
+        onOpenBooking={handleOpenBooking}
+        onSelectForConfigurator={handleSelectForConfigurator}
+      />
+
+      {/* Porsche Digital "Car Configurator" (Build & Price) */}
+      <PorscheConfigurator
+        selectedModelFromParent={configuratorTargetModel}
+        onOpenBookingWithConfig={handleOpenBooking}
+      />
+
+      {/* Bespoke Mobility Services */}
       <CoreServices onOpenBooking={handleOpenBooking} />
 
-      {/* The All-Black Fleet Interactive Showcase (100% Black Cars - No Trucks) */}
-      <FleetShowcase onOpenBooking={handleOpenBooking} />
-
-      {/* Interactive Charter Route & Quote Estimator */}
+      {/* Interactive Corridor & Rate Estimator */}
       <QuoteEstimator onBookWithQuote={handleOpenBooking} />
 
-      {/* Live GPS Fleet Telemetry Radar Console */}
+      {/* Privé Centres & FBO Tarmac Ramp Locator */}
+      <PorscheFinder onOpenBooking={handleOpenBooking} />
+
+      {/* Sub-Second Satellite Radar Telematics */}
       <LiveTelemetryRadar />
 
-      {/* Verified Safety Standards & Why Choose Us */}
+      {/* Engineering Standards & Operational Rigor */}
       <TrustMetrics />
 
-      {/* Client Endorsements & Strict Confidentiality Covenant */}
+      {/* Client Discretion Endorsements */}
       <Testimonials />
 
-      {/* Luxury White Footer */}
+      {/* Porsche Canada Minimalist Clean Footer */}
       <Footer onOpenBooking={handleOpenBooking} />
 
-      {/* Interactive Booking & VIP Dispatch Modal */}
+      {/* VIP Charter Booking Modal */}
       <BookingModal
         isOpen={isBookingOpen}
         onClose={handleCloseBooking}
