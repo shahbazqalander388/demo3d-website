@@ -193,7 +193,7 @@ export const HERO_CARS = [
 
 export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
   const [selectedCarIndex, setSelectedCarIndex] = useState(0);
-  const [activeView, setActiveView] = useState('exterior'); // 'exterior', 'interior', 'profile', '360'
+  const [activeView, setActiveView] = useState('360'); // Default to 360° Live 3D Model on page load
   const [lightingMood, setLightingMood] = useState('studio'); // 'studio', 'warm', 'noir'
   const [activeHotspot, setActiveHotspot] = useState(null);
 
@@ -248,13 +248,13 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
           />
-          {/* Back to Exterior Button */}
+          {/* Switch to Photo View */}
           <div className="absolute top-12 left-3 sm:top-20 sm:left-6 md:left-8 z-30 pointer-events-auto">
             <button
               onClick={() => setActiveView('exterior')}
-              className="flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/85 hover:bg-black backdrop-blur-xl border border-white/20 text-white text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition shadow-lg"
+              className="flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/85 hover:bg-black backdrop-blur-xl border border-white/20 text-neutral-300 hover:text-white text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition shadow-lg cursor-pointer"
             >
-              <span>← Photo View</span>
+              <span>📷 Switch to Still Photo</span>
             </button>
           </div>
         </div>
@@ -413,6 +413,17 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
           {/* Angle / View Toggle */}
           <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 shadow-xl overflow-x-auto no-scrollbar">
             <button
+              onClick={() => setActiveView('360')}
+              className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
+                activeView === '360'
+                  ? 'bg-amber-400 text-black font-bold shadow-sm'
+                  : 'text-amber-400 hover:text-white'
+              }`}
+            >
+              <RotateCw className="w-3 h-3" />
+              <span>360° 3D</span>
+            </button>
+            <button
               onClick={() => setActiveView('exterior')}
               className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
                 activeView === 'exterior'
@@ -420,18 +431,7 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
-              Exterior
-            </button>
-            <button
-              onClick={() => setActiveView('360')}
-              className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
-                activeView === '360'
-                  ? 'bg-amber-400 text-black font-bold shadow-sm'
-                  : 'text-amber-400 hover:text-white'
-              }`}
-            >
-              <RotateCw className="w-3 h-3" />
-              <span>360°</span>
+              Photo
             </button>
             <button
               onClick={() => setActiveView('interior')}

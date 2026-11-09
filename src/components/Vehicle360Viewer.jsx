@@ -16,16 +16,26 @@ export default function Vehicle360Viewer({
   initialAngle = 35,
   showModeSwitch = true,
   inline = false,
+  autoRotate = true,
   onOpenBooking = null,
   onOpenConfigurator = null
 }) {
-  const [viewMode, setViewMode] = useState('photo'); // 'photo' | 'webgl'
+  const [viewMode, setViewMode] = useState('webgl'); // Default to Real-Time 3D WebGL Model
   const [angle, setAngle] = useState(initialAngle); // 0 to 359
   const [isDragging, setIsDragging] = useState(false);
-  const [isAutoSpinning, setIsAutoSpinning] = useState(false);
+  const [isAutoSpinning, setIsAutoSpinning] = useState(autoRotate);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [lightingMood, setLightingMood] = useState('studio'); // 'studio', 'warm', 'noir'
   const [hasInteracted, setHasInteracted] = useState(false);
+
+  // Auto-Spin intro on mount / vehicle change (spins for 7 seconds then pauses)
+  useEffect(() => {
+    setIsAutoSpinning(true);
+    const timer = setTimeout(() => {
+      setIsAutoSpinning(false);
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [vehicle?.id]);
 
   // Drag physics tracking
   const containerRef = useRef(null);
@@ -253,11 +263,11 @@ export default function Vehicle360Viewer({
       {/* MAIN 360 INTERACTIVE STAGE */}
       <div
         ref={containerRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onWheel={handleWheel}
+        onPointerDown={viewMode === 'photo' ? handlePointerDown : undefined}
+        onPointerMove={viewMode === 'photo' ? handlePointerMove : undefined}
+        onPointerUp={viewMode === 'photo' ? handlePointerUp : undefined}
+        onPointerCancel={viewMode === 'photo' ? handlePointerUp : undefined}
+        onWheel={viewMode === 'photo' ? handleWheel : undefined}
         className={`relative w-full flex-1 flex items-center justify-center overflow-hidden touch-none ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
@@ -267,11 +277,16 @@ export default function Vehicle360Viewer({
           // 3D Three.js WebGL Stage
           <div className="absolute inset-0 w-full h-full pointer-events-auto">
             <ThreeCarStage
+              vehicle={vehicle}
+              vehicleId={vehicle?.id}
               paintColor="#070709"
               paintFinish="gloss"
               autoRotate={isAutoSpinning}
               headlightsOn={true}
-              onRotateChange={(deg) => setAngle(deg)}
+              onRotateChange={(deg) => {
+                setAngle(deg);
+                setHasInteracted(true);
+              }}
             />
           </div>
         ) : (
