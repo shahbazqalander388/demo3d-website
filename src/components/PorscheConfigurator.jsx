@@ -3,16 +3,12 @@ import {
   Sliders,
   Check,
   ArrowRight,
-  Shield,
-  Eye,
-  Camera,
-  Layers,
-  Sparkles,
   RotateCw,
-  Info
+  Eye
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FLEET_MODELS } from '../data/fleetData';
+import Vehicle360Viewer from './Vehicle360Viewer';
 
 export default function PorscheConfigurator({
   selectedModelFromParent = null,
@@ -139,33 +135,58 @@ export default function PorscheConfigurator({
         {/* Main Configurator Split Stage */}
         <div className="rounded-3xl border border-neutral-200 bg-white overflow-hidden shadow-lg grid grid-cols-1 lg:grid-cols-12">
           {/* Left 7 Columns: Dynamic Car Visualizer Stage */}
-          <div className="lg:col-span-7 bg-black relative flex flex-col justify-between overflow-hidden min-h-[440px] lg:min-h-[620px]">
-            {/* Visualizer Image */}
-            <div className="absolute inset-0">
-              <img
-                src={viewAngle === 'interior' ? currentModel.interiorImage : currentModel.image}
-                alt={currentModel.name}
-                className="w-full h-full object-cover object-center transition-all duration-500 filter brightness-95 contrast-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 pointer-events-none" />
-            </div>
+          <div className="lg:col-span-7 bg-black relative flex flex-col justify-between overflow-hidden min-h-[360px] sm:min-h-[440px] lg:min-h-[620px]">
+            {/* Visualizer Content: 360 Interactive Turntable or Static Studio Photo */}
+            {viewAngle === '360' ? (
+              <div className="absolute inset-0 w-full h-full">
+                <Vehicle360Viewer
+                  vehicle={currentModel}
+                  inline={true}
+                  onOpenBooking={handleOrderConfiguration}
+                />
+              </div>
+            ) : (
+              <div
+                onClick={() => setViewAngle('360')}
+                className="absolute inset-0 cursor-pointer group/cfg flex items-center justify-center"
+                title="Click to rotate 360° with hand"
+              >
+                <img
+                  src={viewAngle === 'interior' ? currentModel.interiorImage : currentModel.image}
+                  alt={currentModel.name}
+                  className="w-full h-full object-contain p-3 sm:p-6 object-center transition-all duration-500 filter brightness-95 contrast-105 group-hover/cfg:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 pointer-events-none" />
+
+                {/* Hover overlay hint */}
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/cfg:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                  <div className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/85 backdrop-blur-xl border border-amber-400 text-white flex items-center gap-2 shadow-2xl">
+                    <span className="text-sm sm:text-base">🖐️</span>
+                    <span className="font-mono text-[11px] sm:text-xs uppercase font-bold text-amber-300">
+                      Click to Rotate 360° with Hand
+                    </span>
+                    <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 animate-spin" />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Top Bar on Visualizer */}
-            <div className="relative z-10 p-6 flex items-center justify-between">
+            <div className="relative z-10 p-3 sm:p-6 flex items-center justify-between pointer-events-none gap-2">
               <div>
-                <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase bg-white/90 text-black shadow-xs">
+                <span className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono font-bold uppercase bg-white/90 text-black shadow-xs">
                   {currentModel.tag}
                 </span>
-                <div className="text-xs font-mono text-neutral-300 mt-2">
-                  Asset Spec: {currentModel.porscheSpecs.power}
+                <div className="text-[10px] sm:text-xs font-mono text-neutral-300 mt-1 sm:mt-2 truncate max-w-[140px] sm:max-w-none">
+                  {currentModel.porscheSpecs.power.split('/')[0]}
                 </div>
               </div>
 
-              {/* View Angle Toggle (Exterior / Interior) */}
-              <div className="flex items-center gap-1 p-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20">
+              {/* View Angle Toggle (Exterior / 360 / Interior) */}
+              <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 pointer-events-auto">
                 <button
                   onClick={() => setViewAngle('exterior')}
-                  className={`px-3 py-1 rounded-full text-xs font-mono transition ${
+                  className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-mono transition ${
                     viewAngle === 'exterior'
                       ? 'bg-white text-black font-bold shadow-xs'
                       : 'text-neutral-400 hover:text-white'
@@ -174,14 +195,25 @@ export default function PorscheConfigurator({
                   Exterior
                 </button>
                 <button
+                  onClick={() => setViewAngle('360')}
+                  className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-mono transition ${
+                    viewAngle === '360'
+                      ? 'bg-amber-400 text-black font-bold shadow-xs'
+                      : 'text-amber-400 hover:text-white'
+                  }`}
+                >
+                  <RotateCw className="w-3 h-3" />
+                  <span>360°</span>
+                </button>
+                <button
                   onClick={() => setViewAngle('interior')}
-                  className={`px-3 py-1 rounded-full text-xs font-mono transition ${
+                  className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-mono transition ${
                     viewAngle === 'interior'
                       ? 'bg-white text-black font-bold shadow-xs'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  Interior Lounge
+                  Suite
                 </button>
               </div>
             </div>

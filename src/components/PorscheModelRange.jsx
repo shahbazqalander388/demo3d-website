@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowRight, Sliders, ChevronRight, Check } from 'lucide-react';
+import { ArrowRight, Sliders, RotateCw } from 'lucide-react';
 import { FLEET_CATEGORIES, FLEET_MODELS } from '../data/fleetData';
 
-export default function PorscheModelRange({ onOpenBooking, onSelectForConfigurator }) {
+export default function PorscheModelRange({ onOpenBooking, onSelectForConfigurator, onOpen360View }) {
   const [activeCategory, setActiveCategory] = useState('all');
 
   const filteredModels =
@@ -50,17 +50,39 @@ export default function PorscheModelRange({ onOpenBooking, onSelectForConfigurat
               className="rounded-2xl border border-neutral-200 bg-white hover:border-black transition-all duration-300 flex flex-col justify-between overflow-hidden group shadow-xs hover:shadow-md"
             >
               <div>
-                {/* Vehicle Studio Photography */}
-                <div className="relative h-60 w-full overflow-hidden bg-neutral-900">
+                {/* Vehicle Studio Photography with Interactive 360 Click */}
+                <div
+                  onClick={() => onOpen360View && onOpen360View(model)}
+                  className="relative h-52 sm:h-64 w-full overflow-hidden bg-neutral-950 cursor-pointer group/img flex items-center justify-center"
+                  title="Click to rotate 360° with hand"
+                >
                   <img
                     src={model.image}
                     alt={model.name}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 filter brightness-95 contrast-105"
+                    className="w-full h-full object-contain p-2 sm:p-4 group-hover/img:scale-105 transition-transform duration-500 filter brightness-95 contrast-105"
                   />
                   <div className="absolute top-3 left-3">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase bg-white/90 text-black shadow-xs">
                       {model.tag}
                     </span>
+                  </div>
+
+                  {/* 360 Spin Badge (Top Right) */}
+                  <div className="absolute top-3 right-3">
+                    <span className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono font-bold uppercase bg-black/80 hover:bg-black text-amber-400 border border-white/20 backdrop-blur-md shadow-md transition group-hover/img:border-amber-400">
+                      <RotateCw className="w-3 h-3 group-hover/img:rotate-90 transition duration-300" />
+                      <span>360° Spin</span>
+                    </span>
+                  </div>
+
+                  {/* Hover Overlay Hint */}
+                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <div className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/85 backdrop-blur-md border border-amber-400 text-white flex items-center gap-1.5 sm:gap-2 shadow-xl scale-95 group-hover/img:scale-100 transition-transform">
+                      <span className="text-xs sm:text-sm">🖐️</span>
+                      <span className="font-mono text-[10px] sm:text-[11px] uppercase font-bold text-amber-300">
+                        Rotate 360° with Hand
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -111,22 +133,31 @@ export default function PorscheModelRange({ onOpenBooking, onSelectForConfigurat
                 </div>
               </div>
 
-              {/* Porsche Dual Action Buttons */}
-              <div className="p-6 pt-2 border-t border-neutral-100 flex items-center justify-between gap-3">
+              {/* Porsche Triple Action Buttons (360 + Configure + Reserve) */}
+              <div className="p-3.5 sm:p-6 pt-2 border-t border-neutral-100 flex items-center justify-between gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => onOpen360View && onOpen360View(model)}
+                  className="px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-full border border-neutral-300 hover:border-black text-black font-mono text-[11px] sm:text-xs uppercase tracking-wider font-semibold transition flex items-center justify-center gap-1 hover:bg-neutral-50 active:scale-95"
+                  title="Rotate vehicle 360° with hand"
+                >
+                  <RotateCw className="w-3 h-3 text-amber-500" />
+                  <span>360°</span>
+                </button>
+
                 <button
                   onClick={() => onSelectForConfigurator(model)}
-                  className="flex-1 py-2.5 rounded-full border border-neutral-300 hover:border-black text-black font-mono text-xs uppercase tracking-wider font-semibold transition flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 sm:py-2.5 rounded-full border border-neutral-300 hover:border-black text-black font-mono text-[11px] sm:text-xs uppercase tracking-wider font-semibold transition flex items-center justify-center gap-1 sm:gap-1.5"
                 >
-                  <Sliders className="w-3.5 h-3.5" />
+                  <Sliders className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>Configure</span>
                 </button>
 
                 <button
                   onClick={() => onOpenBooking(model)}
-                  className="flex-1 py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white font-mono text-xs uppercase tracking-wider font-semibold transition flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2 sm:py-2.5 rounded-full bg-black hover:bg-neutral-800 text-white font-mono text-[11px] sm:text-xs uppercase tracking-wider font-semibold transition flex items-center justify-center gap-1 sm:gap-1.5"
                 >
                   <span>Reserve</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                  <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
                 </button>
               </div>
             </div>

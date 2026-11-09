@@ -1,9 +1,9 @@
 import React from 'react';
-import { ArrowRight, ShieldCheck, Clock, Navigation, Sparkles, Sliders, CheckCircle2, Shield } from 'lucide-react';
+import { ArrowRight, Clock, Sliders, CheckCircle2, RotateCw, Navigation, Shield } from 'lucide-react';
 import HeroVehicleShowcase from './HeroVehicleShowcase';
-import { BRAND_INFO } from '../data/fleetData';
+import { BRAND_INFO, FLEET_MODELS } from '../data/fleetData';
 
-export default function HeroSection({ onOpenBooking, onExploreFleet, onOpenConfigurator }) {
+export default function HeroSection({ onOpenBooking, onExploreFleet, onOpenConfigurator, onOpen360View }) {
   return (
     <section className="relative min-h-screen pt-28 pb-16 lg:pt-36 lg:pb-24 overflow-hidden flex flex-col justify-center bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -28,19 +28,27 @@ export default function HeroSection({ onOpenBooking, onExploreFleet, onOpenConfi
             The premier private chauffeur, executive airport tarmac transfer, and diplomatic armored mobility service. Operating an elite 100% all-black fleet.
           </p>
 
-          {/* Dual Porsche Action Buttons */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          {/* Porsche & 360 Studio Action Buttons */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={onExploreFleet}
-              className="px-8 py-4 rounded-full bg-black hover:bg-neutral-800 text-white font-mono font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center gap-3 group shadow-xs active:scale-[0.98]"
+              className="px-7 py-3.5 rounded-full bg-black hover:bg-neutral-800 text-white font-mono font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center gap-3 group shadow-xs active:scale-[0.98]"
             >
               <span>Explore All Models</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition duration-200 text-amber-400" />
             </button>
 
+            <button
+              onClick={() => onOpen360View && onOpen360View(FLEET_MODELS[0])}
+              className="px-7 py-3.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-mono font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center gap-2.5 active:scale-[0.98] shadow-md group"
+            >
+              <RotateCw className="w-4 h-4 text-black group-hover:rotate-90 transition duration-300" />
+              <span>🖐️ 360° Studio (Hand Spin)</span>
+            </button>
+
             <a
               href="#configurator"
-              className="px-8 py-4 rounded-full bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-900 font-mono font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center gap-2.5 active:scale-[0.98]"
+              className="px-7 py-3.5 rounded-full bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-900 font-mono font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center gap-2.5 active:scale-[0.98]"
             >
               <Sliders className="w-4 h-4 text-neutral-700" />
               <span>Build & Price Configurator</span>
@@ -50,7 +58,10 @@ export default function HeroSection({ onOpenBooking, onExploreFleet, onOpenConfi
 
         {/* REAL BLACK CAR INTERACTIVE SHOWCASE */}
         <div className="relative w-full">
-          <HeroVehicleShowcase onOpenBooking={onOpenBooking} />
+          <HeroVehicleShowcase
+            onOpenBooking={onOpenBooking}
+            onOpen360View={onOpen360View}
+          />
         </div>
 
         {/* 4 Minimalist Porsche Metrics */}

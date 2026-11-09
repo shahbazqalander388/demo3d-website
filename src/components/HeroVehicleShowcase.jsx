@@ -1,18 +1,11 @@
 import React, { useState, useRef } from 'react';
 import {
-  Shield,
-  Sparkles,
-  Zap,
-  Gauge,
   Sliders,
-  Check,
-  ChevronRight,
-  Eye,
-  Camera,
   ArrowRight,
-  Compass,
-  Layers
+  RotateCw,
+  Maximize2
 } from 'lucide-react';
+import Vehicle360Viewer from './Vehicle360Viewer';
 
 export const HERO_CARS = [
   {
@@ -198,9 +191,9 @@ export const HERO_CARS = [
   }
 ];
 
-export default function HeroVehicleShowcase({ onOpenBooking }) {
+export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
   const [selectedCarIndex, setSelectedCarIndex] = useState(0);
-  const [activeView, setActiveView] = useState('exterior'); // 'exterior', 'interior', 'profile'
+  const [activeView, setActiveView] = useState('exterior'); // 'exterior', 'interior', 'profile', '360'
   const [lightingMood, setLightingMood] = useState('studio'); // 'studio', 'warm', 'noir'
   const [activeHotspot, setActiveHotspot] = useState(null);
 
@@ -244,133 +237,184 @@ export default function HeroVehicleShowcase({ onOpenBooking }) {
   return (
     <div className="relative w-full rounded-3xl overflow-hidden border border-neutral-200/90 bg-neutral-900 shadow-[0_20px_50px_rgba(0,0,0,0.12)]">
       {/* 3D TILT PHOTO VIEWPORT */}
-      <div
-        ref={containerRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{ perspective: '1400px' }}
-        className="relative w-full h-[520px] sm:h-[600px] lg:h-[680px] overflow-hidden bg-neutral-950 flex items-center justify-center cursor-crosshair select-none"
-      >
-        {/* Real Vehicle Image with Parallax Tilt & Filter Mood */}
-        <div
-          style={{
-            transform: `rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(1.02)`,
-            transition: 'transform 0.15s ease-out',
-            transformStyle: 'preserve-3d'
-          }}
-          className="absolute inset-0 w-full h-full flex items-center justify-center"
-        >
-          <img
-            src={getCurrentImage()}
-            alt={currentCar.name}
-            className={`w-full h-full object-cover object-center transition-all duration-700 ${
-              lightingMood === 'warm'
-                ? 'sepia-[0.15] contrast-110 brightness-95'
-                : lightingMood === 'noir'
-                ? 'grayscale contrast-135 brightness-90'
-                : 'contrast-105'
-            }`}
-          />
-
-          {/* Dynamic Light Specular Reflection Layer */}
-          <div
-            className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-            style={{
-              background: `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.12) 0%, transparent 65%)`
+      {activeView === '360' ? (
+        <div className="relative w-full h-[480px] sm:h-[580px] lg:h-[680px] overflow-hidden bg-neutral-950 pb-20 sm:pb-24">
+          <Vehicle360Viewer
+            vehicle={currentCar}
+            inline={true}
+            onOpenBooking={onOpenBooking}
+            onOpenConfigurator={() => {
+              const el = document.getElementById('configurator');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
           />
-
-          {/* Luxury Studio Vignette */}
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-neutral-950/20 to-neutral-950/40 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/60 via-transparent to-neutral-950/60 pointer-events-none" />
-        </div>
-
-        {/* Top Left Studio Identity Badge */}
-        <div className="absolute top-6 left-6 md:left-8 z-30 pointer-events-none">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] tracking-[0.25em] font-mono uppercase font-bold text-white">
-              Studio Photography // 100% Real Asset
-            </span>
-          </div>
-          <div className="text-xs font-mono text-neutral-300 tracking-wider">
-            {currentCar.spec}
-          </div>
-        </div>
-
-        {/* Top Right Quick Stats HUD */}
-        <div className="absolute top-6 right-6 md:right-8 z-30 flex flex-col items-end gap-2 pointer-events-auto">
-          <div className="px-4 py-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 text-right shadow-lg">
-            <div className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider">Velocity Sprint</div>
-            <div className="text-xs font-bold text-white font-mono">{currentCar.stats.acceleration}</div>
-          </div>
-
-          <div className="px-4 py-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 text-right shadow-lg">
-            <div className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider">Sound Dampening</div>
-            <div className="text-xs font-bold text-amber-400 font-mono">{currentCar.stats.soundIsolation}</div>
-          </div>
-
-          <div className="px-4 py-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 text-right shadow-lg">
-            <div className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider">Response Window</div>
-            <div className="text-xs font-bold text-emerald-400 font-mono">{currentCar.stats.dispatch}</div>
-          </div>
-        </div>
-
-        {/* Interactive Tactical Hotspots on the Real Car */}
-        {activeView === 'exterior' &&
-          currentCar.hotspots.map((h) => {
-            const isOpened = activeHotspot === h.id;
-            return (
-              <div
-                key={h.id}
-                style={{ left: h.x, top: h.y }}
-                className="absolute z-40 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                onClick={() => setActiveHotspot(isOpened ? null : h.id)}
-              >
-                <div className="relative flex items-center justify-center">
-                  <span className="absolute w-8 h-8 rounded-full bg-white/20 animate-ping pointer-events-none" />
-                  <span className="w-5 h-5 rounded-full bg-white border-2 border-neutral-900 flex items-center justify-center shadow-lg group-hover:scale-125 transition">
-                    <span className="w-2 h-2 rounded-full bg-neutral-900" />
-                  </span>
-                </div>
-
-                {/* Hotspot Popup Card */}
-                {isOpened && (
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-8 w-64 p-4 rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/20 text-white shadow-2xl animate-in fade-in zoom-in-95 pointer-events-auto">
-                    <div className="flex items-center justify-between mb-1 pb-1 border-b border-white/10">
-                      <span className="text-[11px] font-mono uppercase font-bold text-amber-400">
-                        {h.title}
-                      </span>
-                    </div>
-                    <p className="text-xs text-neutral-300 font-sans leading-relaxed">
-                      {h.desc}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-        {/* Center Bottom Car Headline & Reserve Overlay */}
-        <div className="absolute bottom-24 sm:bottom-28 left-6 md:left-8 z-30 max-w-xl pointer-events-none">
-          <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest font-bold bg-white/90 text-neutral-950 mb-2 shadow-sm">
-            {currentCar.tag}
-          </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white font-sans tracking-tight leading-tight">
-            {currentCar.name}
-          </h2>
-          <p className="mt-1 text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
-            "{currentCar.headline}"
-          </p>
-        </div>
-
-        {/* View Mode & Lighting Controls Dock (Top/Middle Right) */}
-        <div className="absolute bottom-24 sm:bottom-28 right-6 md:right-8 z-30 flex items-center gap-2 pointer-events-auto">
-          {/* Angle / View Toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-black/70 backdrop-blur-xl border border-white/15 shadow-xl">
+          {/* Back to Exterior Button */}
+          <div className="absolute top-12 left-3 sm:top-20 sm:left-6 md:left-8 z-30 pointer-events-auto">
             <button
               onClick={() => setActiveView('exterior')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-mono transition ${
+              className="flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/85 hover:bg-black backdrop-blur-xl border border-white/20 text-white text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition shadow-lg"
+            >
+              <span>← Photo View</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          style={{ perspective: '1400px' }}
+          className="relative w-full h-[460px] sm:h-[580px] lg:h-[680px] overflow-hidden bg-neutral-950 flex items-center justify-center cursor-crosshair select-none"
+        >
+          {/* Real Vehicle Image with Parallax Tilt & Filter Mood */}
+          <div
+            onClick={() => setActiveView('360')}
+            style={{
+              transform: `rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(1.02)`,
+              transition: 'transform 0.15s ease-out',
+              transformStyle: 'preserve-3d'
+            }}
+            className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer group"
+            title="Click to rotate 360° with hand"
+          >
+            <img
+              src={getCurrentImage()}
+              alt={currentCar.name}
+              className={`w-full h-full object-contain p-2 sm:p-6 object-center transition-all duration-700 ${
+                lightingMood === 'warm'
+                  ? 'sepia-[0.15] contrast-110 brightness-95'
+                  : lightingMood === 'noir'
+                  ? 'grayscale contrast-135 brightness-90'
+                  : 'contrast-105'
+              }`}
+            />
+
+            {/* Hover Hint on Image */}
+            <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+              <div className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/85 backdrop-blur-xl border border-amber-400 text-white flex items-center gap-2 shadow-2xl scale-95 group-hover:scale-100 transition-transform">
+                <span className="text-base sm:text-lg">🖐️</span>
+                <span className="font-mono text-[11px] sm:text-xs uppercase font-bold tracking-wider text-amber-300">
+                  Click to Rotate 360° with Hand
+                </span>
+                <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 animate-spin" />
+              </div>
+            </div>
+
+            {/* Dynamic Light Specular Reflection Layer */}
+            <div
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+              style={{
+                background: `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.12) 0%, transparent 65%)`
+              }}
+            />
+
+            {/* Luxury Studio Vignette */}
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-neutral-950/20 to-neutral-950/40 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/60 via-transparent to-neutral-950/60 pointer-events-none" />
+          </div>
+
+          {/* Top Left Studio Identity Badge */}
+          <div className="absolute top-3 left-3 sm:top-6 sm:left-6 md:left-8 z-30 pointer-events-none max-w-[200px] sm:max-w-none">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[9px] sm:text-[11px] tracking-[0.2em] font-mono uppercase font-bold text-white truncate">
+                Studio Photography // Real Asset
+              </span>
+            </div>
+            <div className="text-[10px] sm:text-xs font-mono text-neutral-300 tracking-wider truncate">
+              {currentCar.spec}
+            </div>
+          </div>
+
+          {/* Direct 360 Activation Pill */}
+          <div className="absolute top-12 left-3 sm:top-20 sm:left-6 md:left-8 z-30 pointer-events-auto">
+            <button
+              onClick={() => setActiveView('360')}
+              className="group flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/80 hover:bg-black backdrop-blur-xl border border-amber-400/60 text-white shadow-xl transition active:scale-95 cursor-pointer"
+            >
+              <span className="text-xs sm:text-sm group-hover:scale-125 transition">🖐️</span>
+              <span className="text-[10px] sm:text-[11px] font-mono font-bold text-amber-300 uppercase tracking-wider">
+                360° Hand Spin
+              </span>
+              <RotateCw className="w-3 h-3 text-amber-400 group-hover:rotate-90 transition duration-300" />
+            </button>
+          </div>
+
+          {/* Top Right Quick Stats HUD (Visible on Tablets & Desktops) */}
+          <div className="absolute top-6 right-6 md:right-8 z-30 hidden md:flex flex-col items-end gap-2 pointer-events-auto">
+            <div className="px-4 py-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 text-right shadow-lg">
+              <div className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider">Velocity Sprint</div>
+              <div className="text-xs font-bold text-white font-mono">{currentCar.stats.acceleration}</div>
+            </div>
+
+            <div className="px-4 py-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 text-right shadow-lg">
+              <div className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider">Sound Dampening</div>
+              <div className="text-xs font-bold text-amber-400 font-mono">{currentCar.stats.soundIsolation}</div>
+            </div>
+
+            <div className="px-4 py-2 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/15 text-right shadow-lg">
+              <div className="text-[10px] font-mono uppercase text-neutral-400 tracking-wider">Response Window</div>
+              <div className="text-xs font-bold text-emerald-400 font-mono">{currentCar.stats.dispatch}</div>
+            </div>
+          </div>
+
+          {/* Interactive Tactical Hotspots on the Real Car */}
+          {activeView === 'exterior' &&
+            currentCar.hotspots.map((h) => {
+              const isOpened = activeHotspot === h.id;
+              return (
+                <div
+                  key={h.id}
+                  style={{ left: h.x, top: h.y }}
+                  className="absolute z-40 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                  onClick={() => setActiveHotspot(isOpened ? null : h.id)}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <span className="absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/20 animate-ping pointer-events-none" />
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white border-2 border-neutral-900 flex items-center justify-center shadow-lg group-hover:scale-125 transition">
+                      <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-neutral-900" />
+                    </span>
+                  </div>
+
+                  {/* Hotspot Popup Card */}
+                  {isOpened && (
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-8 w-56 sm:w-64 p-3 sm:p-4 rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/20 text-white shadow-2xl animate-in fade-in zoom-in-95 pointer-events-auto">
+                      <div className="flex items-center justify-between mb-1 pb-1 border-b border-white/10">
+                        <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-amber-400">
+                          {h.title}
+                        </span>
+                      </div>
+                      <p className="text-[11px] sm:text-xs text-neutral-300 font-sans leading-relaxed">
+                        {h.desc}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+          {/* Center Bottom Car Headline & Reserve Overlay */}
+          <div className="absolute bottom-28 sm:bottom-32 left-3 sm:left-6 md:left-8 z-20 max-w-[200px] sm:max-w-xl pointer-events-none">
+            <span className="inline-block px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono uppercase tracking-widest font-bold bg-white/90 text-neutral-950 mb-1 sm:mb-2 shadow-sm">
+              {currentCar.tag}
+            </span>
+            <h2 className="text-xl sm:text-3xl lg:text-5xl font-black text-white font-sans tracking-tight leading-tight truncate">
+              {currentCar.name}
+            </h2>
+            <p className="mt-1 text-[11px] sm:text-sm text-neutral-300 font-sans leading-relaxed hidden sm:block">
+              "{currentCar.headline}"
+            </p>
+          </div>
+        </div>
+      )}
+
+        {/* View Mode & Lighting Controls Dock */}
+        <div className="absolute bottom-16 sm:bottom-24 right-2 sm:right-6 md:right-8 z-30 flex items-center gap-1 sm:gap-2 pointer-events-auto max-w-[calc(100%-16px)]">
+          {/* Angle / View Toggle */}
+          <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 shadow-xl overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setActiveView('exterior')}
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
                 activeView === 'exterior'
                   ? 'bg-white text-neutral-900 font-bold shadow-sm'
                   : 'text-neutral-400 hover:text-white'
@@ -379,26 +423,48 @@ export default function HeroVehicleShowcase({ onOpenBooking }) {
               Exterior
             </button>
             <button
+              onClick={() => setActiveView('360')}
+              className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
+                activeView === '360'
+                  ? 'bg-amber-400 text-black font-bold shadow-sm'
+                  : 'text-amber-400 hover:text-white'
+              }`}
+            >
+              <RotateCw className="w-3 h-3" />
+              <span>360°</span>
+            </button>
+            <button
               onClick={() => setActiveView('interior')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-mono transition ${
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
                 activeView === 'interior'
                   ? 'bg-white text-neutral-900 font-bold shadow-sm'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
-              First-Class Suite
+              Suite
             </button>
             <button
               onClick={() => setActiveView('profile')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-mono transition ${
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
                 activeView === 'profile'
                   ? 'bg-white text-neutral-900 font-bold shadow-sm'
                   : 'text-neutral-400 hover:text-white'
               }`}
             >
-              Side Profile
+              Profile
             </button>
           </div>
+
+          {/* Fullscreen 360 Modal Trigger */}
+          {onOpen360View && (
+            <button
+              onClick={() => onOpen360View(currentCar)}
+              className="p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 text-white hover:bg-black/90 transition shadow-xl shrink-0"
+              title="Open Fullscreen 360° Studio"
+            >
+              <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+            </button>
+          )}
 
           {/* Lighting Filter */}
           <button
@@ -407,17 +473,17 @@ export default function HeroVehicleShowcase({ onOpenBooking }) {
                 lightingMood === 'studio' ? 'warm' : lightingMood === 'warm' ? 'noir' : 'studio'
               )
             }
-            className="p-2.5 rounded-2xl bg-black/70 backdrop-blur-xl border border-white/15 text-white hover:bg-black/90 transition shadow-xl"
+            className="p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 text-white hover:bg-black/90 transition shadow-xl shrink-0"
             title="Cycle Lighting Mood"
           >
-            <Sliders className="w-4 h-4 text-amber-400" />
+            <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
           </button>
         </div>
 
         {/* BOTTOM REAL CAR DOCK (THUMBNAIL STRIP) */}
-        <div className="absolute bottom-4 inset-x-4 md:inset-x-8 z-30 flex items-center justify-between gap-3 p-2.5 rounded-2xl bg-white/95 backdrop-blur-xl border border-neutral-200/90 shadow-2xl pointer-events-auto">
+        <div className="absolute bottom-2 sm:bottom-4 inset-x-2 sm:inset-x-4 md:inset-x-8 z-30 flex items-center justify-between gap-1.5 sm:gap-3 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white/95 backdrop-blur-xl border border-neutral-200/90 shadow-2xl pointer-events-auto">
           {/* Thumbnails */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
             {HERO_CARS.map((car, index) => {
               const isSelected = index === selectedCarIndex;
               return (
@@ -427,21 +493,21 @@ export default function HeroVehicleShowcase({ onOpenBooking }) {
                     setSelectedCarIndex(index);
                     setActiveHotspot(null);
                   }}
-                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border text-left shrink-0 transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border text-left shrink-0 transition-all duration-200 ${
                     isSelected
                       ? 'bg-neutral-900 text-white border-neutral-900 shadow-md scale-[1.02]'
                       : 'bg-neutral-100 text-neutral-800 border-neutral-200 hover:bg-neutral-200/70 hover:border-neutral-300'
                   }`}
                 >
-                  <div className="w-9 h-7 rounded-lg overflow-hidden bg-black shrink-0">
+                  <div className="w-7 h-5 sm:w-9 sm:h-7 rounded-md sm:rounded-lg overflow-hidden bg-black shrink-0">
                     <img src={car.image} alt={car.name} className="w-full h-full object-cover" />
                   </div>
-                  <div>
-                    <div className="text-[11px] font-bold font-sans truncate max-w-[130px]">
+                  <div className="hidden min-[480px]:block">
+                    <div className="text-[10px] sm:text-[11px] font-bold font-sans truncate max-w-[100px] sm:max-w-[130px]">
                       {car.name}
                     </div>
-                    <div className="text-[9px] font-mono opacity-70 truncate max-w-[120px]">
-                      {car.stats.power.split(' ')[0]} {car.stats.power.split(' ')[1]}
+                    <div className="text-[8px] sm:text-[9px] font-mono opacity-70 truncate max-w-[90px] sm:max-w-[120px]">
+                      {car.stats.power.split(' ')[0]}
                     </div>
                   </div>
                 </button>
@@ -452,13 +518,13 @@ export default function HeroVehicleShowcase({ onOpenBooking }) {
           {/* Quick Reserve CTA */}
           <button
             onClick={() => onOpenBooking(currentCar)}
-            className="px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-mono font-bold uppercase tracking-wider shrink-0 transition flex items-center gap-2 shadow-md active:scale-[0.98]"
+            className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-neutral-900 hover:bg-black text-white text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider shrink-0 transition flex items-center gap-1.5 sm:gap-2 shadow-md active:scale-[0.98]"
           >
-            <span>Charter {currentCar.name.split(' ')[0]}</span>
-            <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Charter {currentCar.name.split(' ')[0]}</span>
+            <span className="sm:hidden">Charter</span>
+            <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
           </button>
         </div>
       </div>
-    </div>
   );
 }

@@ -13,8 +13,9 @@ import {
   Bookmark
 } from 'lucide-react';
 import { BRAND_INFO, FLEET_MODELS } from '../data/fleetData';
+import { RotateCw } from 'lucide-react';
 
-export default function Navbar({ onOpenBooking, onOpenConfigurator }) {
+export default function Navbar({ onOpenBooking, onOpenConfigurator, onOpen360View }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [modelsFlyoutOpen, setModelsFlyoutOpen] = useState(false);
@@ -100,6 +101,14 @@ export default function Navbar({ onOpenBooking, onOpenConfigurator }) {
               />
             </button>
 
+            <button
+              onClick={() => onOpen360View && onOpen360View()}
+              className="text-xs uppercase tracking-[0.18em] font-mono text-amber-600 hover:text-black transition py-1 font-bold flex items-center gap-1.5 cursor-pointer"
+            >
+              <RotateCw className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+              <span>360° Studio</span>
+            </button>
+
             <a
               href="#configurator"
               className="text-xs uppercase tracking-[0.18em] font-mono text-neutral-700 hover:text-black transition py-1 font-semibold"
@@ -137,7 +146,15 @@ export default function Navbar({ onOpenBooking, onOpenConfigurator }) {
           </div>
 
           {/* Action Controls & Porsche CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
+            <button
+              onClick={() => onOpen360View && onOpen360View()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-amber-400 bg-amber-50/80 hover:bg-amber-100 text-amber-950 font-mono text-xs uppercase tracking-wider transition font-bold"
+              title="Interactive 360 Hand Drag"
+            >
+              <span>🖐️ 360° Spin</span>
+            </button>
+
             <a
               href="#configurator"
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-mono text-xs uppercase tracking-wider transition font-medium"
@@ -233,6 +250,19 @@ export default function Navbar({ onOpenBooking, onOpenConfigurator }) {
         {mobileMenuOpen && (
           <div className="md:hidden px-4 pt-4 pb-6 bg-white border-b border-neutral-200 shadow-xl space-y-3 animate-in fade-in slide-in-from-top-4">
             <div className="flex flex-col gap-1 font-mono text-xs uppercase tracking-wider">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onOpen360View) onOpen360View();
+                }}
+                className="px-3 py-2.5 rounded-lg text-amber-900 bg-amber-50 hover:bg-amber-100 flex items-center justify-between font-bold"
+              >
+                <span className="flex items-center gap-2">
+                  <span>🖐️</span>
+                  <span>360° Studio (Hand Spin)</span>
+                </span>
+                <RotateCw className="w-4 h-4 text-amber-500 animate-spin" />
+              </button>
               <a
                 href="#models"
                 onClick={() => setMobileMenuOpen(false)}

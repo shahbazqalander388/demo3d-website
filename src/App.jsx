@@ -11,11 +11,14 @@ import TrustMetrics from './components/TrustMetrics';
 import Testimonials from './components/Testimonials';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
+import Interactive360ViewerModal from './components/Interactive360ViewerModal';
+import { FLEET_MODELS } from './data/fleetData';
 
 export default function App() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingInitialData, setBookingInitialData] = useState(null);
   const [configuratorTargetModel, setConfiguratorTargetModel] = useState(null);
+  const [active360Model, setActive360Model] = useState(null);
 
   const handleOpenBooking = (data = null) => {
     setBookingInitialData(data);
@@ -25,6 +28,10 @@ export default function App() {
   const handleCloseBooking = () => {
     setIsBookingOpen(false);
     setBookingInitialData(null);
+  };
+
+  const handleOpen360View = (vehicle = null) => {
+    setActive360Model(vehicle || FLEET_MODELS[0]);
   };
 
   const handleSelectForConfigurator = (model) => {
@@ -47,18 +54,25 @@ export default function App() {
           const el = document.getElementById('configurator');
           if (el) el.scrollIntoView({ behavior: 'smooth' });
         }}
+        onOpen360View={handleOpen360View}
       />
 
-      {/* Full-Bleed Cinematic Hero Section */}
+      {/* Full-Bleed Cinematic Hero Section with 360 Hand Drag */}
       <HeroSection
         onOpenBooking={handleOpenBooking}
         onExploreFleet={scrollToModels}
+        onOpenConfigurator={() => {
+          const el = document.getElementById('configurator');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
+        onOpen360View={handleOpen360View}
       />
 
       {/* Porsche Signature "Models." Grid Section */}
       <PorscheModelRange
         onOpenBooking={handleOpenBooking}
         onSelectForConfigurator={handleSelectForConfigurator}
+        onOpen360View={handleOpen360View}
       />
 
       {/* Porsche Digital "Car Configurator" (Build & Price) */}
@@ -93,6 +107,15 @@ export default function App() {
         isOpen={isBookingOpen}
         onClose={handleCloseBooking}
         initialData={bookingInitialData}
+      />
+
+      {/* Interactive 360° Studio Modal (Hand Drag Spin & 3D WebGL) */}
+      <Interactive360ViewerModal
+        isOpen={!!active360Model}
+        vehicle={active360Model}
+        onClose={() => setActive360Model(null)}
+        onOpenBooking={handleOpenBooking}
+        onOpenConfigurator={handleSelectForConfigurator}
       />
     </div>
   );
