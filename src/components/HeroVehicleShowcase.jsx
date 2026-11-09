@@ -193,27 +193,78 @@ export const HERO_CARS = [
 
 export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
   const [selectedCarIndex, setSelectedCarIndex] = useState(0);
-  const [activeView, setActiveView] = useState('360'); // Default to 360° Live 3D Model on page load
+  const [activeView, setActiveView] = useState('exterior'); // Default to Real Vehicle Photo View on page load
   const [lightingMood, setLightingMood] = useState('studio'); // 'studio', 'warm', 'noir'
   const [activeHotspot, setActiveHotspot] = useState(null);
 
   const containerRef = useRef(null);
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
+  const [isIntroAnimating, setIsIntroAnimating] = useState(true);
+  const introStartTimeRef = useRef(null);
+  const introRafRef = useRef(null);
+  const isPointerDownRef = useRef(false);
 
   const currentCar = HERO_CARS[selectedCarIndex];
 
-  // Mouse Parallax & Dynamic Specular Sheen on Real Image
-  const handleMouseMove = (e) => {
+  // Auto-movement when website opens (smooth 3D parallax sweep on the real car image for ~4.5 seconds)
+  useEffect(() => {
+    setIsIntroAnimating(true);
+    introStartTimeRef.current = performance.now();
+
+    const animateIntro = (time) => {
+      if (!introStartTimeRef.current) return;
+      const elapsed = (time - introStartTimeRef.current) / 1000;
+      const duration = 4.5; // 4.5 seconds smooth cinematic movement
+
+      if (elapsed < duration) {
+        const progress = elapsed / duration;
+        // Smooth sine wave movement across horizontal and vertical axes
+        const wave = Math.sin(progress * Math.PI * 2);
+        const rotY = wave * 6.0; // subtle tilt left/right
+        const rotX = -Math.cos(progress * Math.PI * 2) * 2.2;
+        const glareX = 50 + wave * 32;
+
+        setTilt({
+          rotateX: rotX,
+          rotateY: rotY,
+          glareX,
+          glareY: 50
+        });
+
+        introRafRef.current = requestAnimationFrame(animateIntro);
+      } else {
+        setTilt({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
+        setIsIntroAnimating(false);
+      }
+    };
+
+    introRafRef.current = requestAnimationFrame(animateIntro);
+
+    return () => {
+      if (introRafRef.current) cancelAnimationFrame(introRafRef.current);
+    };
+  }, [selectedCarIndex]);
+
+  const stopIntro = () => {
+    if (introRafRef.current) {
+      cancelAnimationFrame(introRafRef.current);
+      introRafRef.current = null;
+    }
+    setIsIntroAnimating(false);
+  };
+
+  const updateTiltFromCoords = (clientX, clientY) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
 
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
 
-    const rotX = -((y - centerY) / centerY) * 4.5;
-    const rotY = ((x - centerX) / centerX) * 4.5;
+    // Responsive 3D rotation angle (up to ±8 degrees with hand/cursor)
+    const rotX = -((y - centerY) / centerY) * 5.5;
+    const rotY = ((x - centerX) / centerX) * 8.5;
 
     setTilt({
       rotateX: rotX,
@@ -223,8 +274,29 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
     });
   };
 
-  const handleMouseLeave = () => {
-    setTilt({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
+  // Mouse Parallax & Hand Touch Handlers
+  const handlePointerDown = (e) => {
+    stopIntro();
+    isPointerDownRef.current = true;
+    updateTiltFromCoords(e.clientX, e.clientY);
+  };
+
+  const handlePointerMove = (e) => {
+    if (e.pointerType === 'mouse' || isPointerDownRef.current) {
+      stopIntro();
+      updateTiltFromCoords(e.clientX, e.clientY);
+    }
+  };
+
+  const handlePointerUp = () => {
+    isPointerDownRef.current = false;
+  };
+
+  const handlePointerLeave = () => {
+    isPointerDownRef.current = false;
+    if (!isIntroAnimating) {
+      setTilt({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
+    }
   };
 
   // Get current active image based on angle/view
@@ -261,26 +333,38 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
       ) : (
         <div
           ref={containerRef}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
           style={{ perspective: '1400px' }}
-          className="relative w-full h-[460px] sm:h-[580px] lg:h-[680px] overflow-hidden bg-neutral-950 flex items-center justify-center cursor-crosshair select-none"
+          className="relative w-full h-[460px] sm:h-[580px] lg:h-[680px] overflow-hidden bg-neutral-950 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
         >
+          {/* Intro Auto-Movement Indicator Banner on Page Load */}
+          {isIntroAnimating && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none animate-bounce">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/85 backdrop-blur-xl border border-amber-400 text-white shadow-2xl">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span className="text-[10px] sm:text-xs font-mono font-bold tracking-wider text-amber-300 uppercase">
+                  Live 3D Movement Active • Move with Hand / Cursor
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Real Vehicle Image with Parallax Tilt & Filter Mood */}
           <div
-            onClick={() => setActiveView('360')}
             style={{
               transform: `rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(1.02)`,
-              transition: 'transform 0.15s ease-out',
+              transition: isIntroAnimating ? 'none' : 'transform 0.15s ease-out',
               transformStyle: 'preserve-3d'
             }}
-            className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer group"
-            title="Click to rotate 360° with hand"
+            className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
           >
             <img
               src={getCurrentImage()}
               alt={currentCar.name}
-              className={`w-full h-full object-contain p-2 sm:p-6 object-center transition-all duration-700 ${
+              className={`w-full h-full object-contain p-2 sm:p-6 object-center transition-all duration-700 pointer-events-auto ${
                 lightingMood === 'warm'
                   ? 'sepia-[0.15] contrast-110 brightness-95'
                   : lightingMood === 'noir'
@@ -288,17 +372,6 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
                   : 'contrast-105'
               }`}
             />
-
-            {/* Hover Hint on Image */}
-            <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-              <div className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/85 backdrop-blur-xl border border-amber-400 text-white flex items-center gap-2 shadow-2xl scale-95 group-hover:scale-100 transition-transform">
-                <span className="text-base sm:text-lg">🖐️</span>
-                <span className="font-mono text-[11px] sm:text-xs uppercase font-bold tracking-wider text-amber-300">
-                  Click to Rotate 360° with Hand
-                </span>
-                <RotateCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 animate-spin" />
-              </div>
-            </div>
 
             {/* Dynamic Light Specular Reflection Layer */}
             <div
@@ -334,7 +407,7 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
             >
               <span className="text-xs sm:text-sm group-hover:scale-125 transition">🖐️</span>
               <span className="text-[10px] sm:text-[11px] font-mono font-bold text-amber-300 uppercase tracking-wider">
-                360° Hand Spin
+                360° 3D Studio
               </span>
               <RotateCw className="w-3 h-3 text-amber-400 group-hover:rotate-90 transition duration-300" />
             </button>
@@ -413,6 +486,16 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
           {/* Angle / View Toggle */}
           <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 shadow-xl overflow-x-auto no-scrollbar">
             <button
+              onClick={() => setActiveView('exterior')}
+              className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
+                activeView === 'exterior'
+                  ? 'bg-white text-neutral-900 font-bold shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Photo
+            </button>
+            <button
               onClick={() => setActiveView('360')}
               className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
                 activeView === '360'
@@ -422,16 +505,6 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
             >
               <RotateCw className="w-3 h-3" />
               <span>360° 3D</span>
-            </button>
-            <button
-              onClick={() => setActiveView('exterior')}
-              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-mono transition whitespace-nowrap ${
-                activeView === 'exterior'
-                  ? 'bg-white text-neutral-900 font-bold shadow-sm'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              Photo
             </button>
             <button
               onClick={() => setActiveView('interior')}
