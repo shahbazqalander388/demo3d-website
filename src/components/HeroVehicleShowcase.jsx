@@ -1,9 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Sliders,
   ArrowRight,
   RotateCw,
-  Maximize2
+  Maximize2,
+  MoveHorizontal,
+  Play,
+  Pause
 } from 'lucide-react';
 import Vehicle360Viewer from './Vehicle360Viewer';
 
@@ -193,116 +196,127 @@ export const HERO_CARS = [
 
 export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
   const [selectedCarIndex, setSelectedCarIndex] = useState(0);
-  const [activeView, setActiveView] = useState('exterior'); // Default to Real Vehicle Photo View on page load
+  const [activeView, setActiveView] = useState('exterior'); // Default to Real Vehicle Photo Turntable View
   const [lightingMood, setLightingMood] = useState('studio'); // 'studio', 'warm', 'noir'
   const [activeHotspot, setActiveHotspot] = useState(null);
 
+  // 360 Turntable Angle & Physics on the Real Picture
+  const [angle, setAngle] = useState(35); // 0 to 359 degrees
+  const [isAutoSpinning, setIsAutoSpinning] = useState(true);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
   const containerRef = useRef(null);
-  const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
-  const [isIntroAnimating, setIsIntroAnimating] = useState(true);
-  const introStartTimeRef = useRef(null);
-  const introRafRef = useRef(null);
-  const isPointerDownRef = useRef(false);
+  const lastXRef = useRef(0);
+  const lastTimeRef = useRef(0);
+  const velocityRef = useRef(0);
+  const inertiaRafRef = useRef(null);
+  const isDraggingRef = useRef(false);
 
   const currentCar = HERO_CARS[selectedCarIndex];
 
-  // Auto-movement when website opens (smooth 3D parallax sweep on the real car image for ~4.5 seconds)
+  // Auto-Spin on Page Load / Car Switch (Spins for 7.5 seconds then smoothly pauses)
   useEffect(() => {
-    setIsIntroAnimating(true);
-    introStartTimeRef.current = performance.now();
-
-    const animateIntro = (time) => {
-      if (!introStartTimeRef.current) return;
-      const elapsed = (time - introStartTimeRef.current) / 1000;
-      const duration = 4.5; // 4.5 seconds smooth cinematic movement
-
-      if (elapsed < duration) {
-        const progress = elapsed / duration;
-        // Smooth sine wave movement across horizontal and vertical axes
-        const wave = Math.sin(progress * Math.PI * 2);
-        const rotY = wave * 6.0; // subtle tilt left/right
-        const rotX = -Math.cos(progress * Math.PI * 2) * 2.2;
-        const glareX = 50 + wave * 32;
-
-        setTilt({
-          rotateX: rotX,
-          rotateY: rotY,
-          glareX,
-          glareY: 50
-        });
-
-        introRafRef.current = requestAnimationFrame(animateIntro);
-      } else {
-        setTilt({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
-        setIsIntroAnimating(false);
-      }
-    };
-
-    introRafRef.current = requestAnimationFrame(animateIntro);
-
-    return () => {
-      if (introRafRef.current) cancelAnimationFrame(introRafRef.current);
-    };
+    setIsAutoSpinning(true);
+    const timer = setTimeout(() => {
+      setIsAutoSpinning(false);
+    }, 7500);
+    return () => clearTimeout(timer);
   }, [selectedCarIndex]);
 
-  const stopIntro = () => {
-    if (introRafRef.current) {
-      cancelAnimationFrame(introRafRef.current);
-      introRafRef.current = null;
-    }
-    setIsIntroAnimating(false);
-  };
+  // Smooth Turntable Continuous Spin Loop
+  useEffect(() => {
+    if (!isAutoSpinning) return;
+    let rafId;
+    const spin = () => {
+      setAngle((prev) => (prev + 0.55) % 360);
+      rafId = requestAnimationFrame(spin);
+    };
+    rafId = requestAnimationFrame(spin);
+    return () => cancelAnimationFrame(rafId);
+  }, [isAutoSpinning]);
 
-  const updateTiltFromCoords = (clientX, clientY) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
-    const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    // Responsive 3D rotation angle (up to ±8 degrees with hand/cursor)
-    const rotX = -((y - centerY) / centerY) * 5.5;
-    const rotY = ((x - centerX) / centerX) * 8.5;
-
-    setTilt({
-      rotateX: rotX,
-      rotateY: rotY,
-      glareX: (x / rect.width) * 100,
-      glareY: (y / rect.height) * 100
-    });
-  };
-
-  // Mouse Parallax & Hand Touch Handlers
+  // Hand / Touch / Mouse Drag Handlers
   const handlePointerDown = (e) => {
-    stopIntro();
-    isPointerDownRef.current = true;
-    updateTiltFromCoords(e.clientX, e.clientY);
+    setIsAutoSpinning(false);
+    if (inertiaRafRef.current) cancelAnimationFrame(inertiaRafRef.current);
+    isDraggingRef.current = true;
+    setHasInteracted(true);
+    lastXRef.current = e.clientX;
+    lastTimeRef.current = performance.now();
+    velocityRef.current = 0;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e) => {
-    if (e.pointerType === 'mouse' || isPointerDownRef.current) {
-      stopIntro();
-      updateTiltFromCoords(e.clientX, e.clientY);
+    if (!isDraggingRef.current) return;
+    const currentX = e.clientX;
+    const now = performance.now();
+    const deltaX = currentX - lastXRef.current;
+    const deltaTime = Math.max(1, now - lastTimeRef.current);
+
+    // Track instant velocity for inertia release
+    velocityRef.current = deltaX / deltaTime;
+
+    // Direct 1-to-1 hand movement: drag right turns right, drag left turns left
+    setAngle((prev) => {
+      const next = (prev - deltaX * 0.65) % 360;
+      return next < 0 ? next + 360 : next;
+    });
+
+    lastXRef.current = currentX;
+    lastTimeRef.current = now;
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+
+    // Smooth inertia gliding after hand release
+    let v = velocityRef.current * 14;
+    const applyInertia = () => {
+      if (Math.abs(v) > 0.05) {
+        setAngle((prev) => {
+          const next = (prev - v) % 360;
+          return next < 0 ? next + 360 : next;
+        });
+        v *= 0.92; // Friction decay
+        inertiaRafRef.current = requestAnimationFrame(applyInertia);
+      }
+    };
+    if (Math.abs(v) > 0.1) {
+      inertiaRafRef.current = requestAnimationFrame(applyInertia);
     }
   };
 
-  const handlePointerUp = () => {
-    isPointerDownRef.current = false;
+  const snapToAngle = (deg) => {
+    setIsAutoSpinning(false);
+    setHasInteracted(true);
+    setAngle(deg % 360);
   };
 
-  const handlePointerLeave = () => {
-    isPointerDownRef.current = false;
-    if (!isIntroAnimating) {
-      setTilt({ rotateX: 0, rotateY: 0, glareX: 50, glareY: 50 });
-    }
-  };
+  // 3D Perspective math for the real car photo
+  const rad = (angle * Math.PI) / 180;
+  // Strong, visible 3D yaw: ±28° turning as turntable rotates
+  const rotY = Math.sin(rad) * 28;
+  const rotX = -Math.cos(rad) * 4.5;
+  const transX = Math.sin(rad) * 20;
+  const turntableZ = angle;
+  const glarePercent = ((angle % 360) / 360) * 100;
+  const shadowScaleX = 1 + Math.abs(Math.sin(rad)) * 0.25;
 
-  // Get current active image based on angle/view
-  const getCurrentImage = () => {
+  // Active image based on view and angle
+  const getDisplayImage = () => {
     if (activeView === 'interior') return currentCar.interiorImage;
     if (activeView === 'profile') return currentCar.profileImage;
+    const normAngle = ((angle % 360) + 360) % 360;
+    if ((normAngle >= 65 && normAngle <= 115) || (normAngle >= 245 && normAngle <= 295)) {
+      return currentCar.profileImage || currentCar.image;
+    }
     return currentCar.image;
   };
 
@@ -336,35 +350,46 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
-          style={{ perspective: '1400px' }}
+          onPointerCancel={handlePointerUp}
+          style={{ perspective: '1200px' }}
           className="relative w-full h-[460px] sm:h-[580px] lg:h-[680px] overflow-hidden bg-neutral-950 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
         >
-          {/* Intro Auto-Movement Indicator Banner on Page Load */}
-          {isIntroAnimating && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none animate-bounce">
-              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/85 backdrop-blur-xl border border-amber-400 text-white shadow-2xl">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                <span className="text-[10px] sm:text-xs font-mono font-bold tracking-wider text-amber-300 uppercase">
-                  Live 3D Movement Active • Move with Hand / Cursor
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Glowing Ground Turntable Stage Rings */}
+          <div
+            className="absolute bottom-8 sm:bottom-12 w-4/5 max-w-4xl h-24 sm:h-32 rounded-full border border-amber-400/35 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent pointer-events-none"
+            style={{
+              transform: `rotateX(75deg) rotateZ(${turntableZ}deg)`,
+              transition: isDraggingRef.current ? 'none' : 'transform 0.15s ease-out'
+            }}
+          >
+            <div className="absolute inset-2 sm:inset-3 rounded-full border border-white/15" />
+            <div className="absolute inset-5 sm:inset-7 rounded-full border border-dashed border-amber-400/40" />
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-amber-400 shadow-[0_0_15px_#fbbf24]" />
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white/70" />
+          </div>
 
-          {/* Real Vehicle Image with Parallax Tilt & Filter Mood */}
+          {/* Ground Contact Shadow */}
+          <div
+            className="absolute bottom-10 sm:bottom-14 w-3/4 max-w-3xl h-16 sm:h-20 rounded-full bg-black/95 blur-2xl pointer-events-none"
+            style={{
+              transform: `scaleX(${shadowScaleX})`
+            }}
+          />
+
+          {/* REAL CAR IMAGE IN 3D TURNTABLE PERSPECTIVE */}
           <div
             style={{
-              transform: `rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale(1.02)`,
-              transition: isIntroAnimating ? 'none' : 'transform 0.15s ease-out',
-              transformStyle: 'preserve-3d'
+              transform: `translateX(${transX}px) rotateY(${rotY}deg) rotateX(${rotX}deg) scale(1.02)`,
+              transformStyle: 'preserve-3d',
+              transition: isDraggingRef.current ? 'none' : 'transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1)'
             }}
-            className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
+            className="relative w-full max-w-5xl h-[80%] max-h-[520px] flex items-center justify-center pointer-events-none"
           >
             <img
-              src={getCurrentImage()}
+              src={getDisplayImage()}
               alt={currentCar.name}
-              className={`w-full h-full object-contain p-2 sm:p-6 object-center transition-all duration-700 pointer-events-auto ${
+              draggable={false}
+              className={`max-w-[94%] max-h-[88%] w-auto h-auto object-contain filter select-none transition-all duration-300 pointer-events-auto ${
                 lightingMood === 'warm'
                   ? 'sepia-[0.15] contrast-110 brightness-95'
                   : lightingMood === 'noir'
@@ -373,11 +398,19 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
               }`}
             />
 
-            {/* Dynamic Light Specular Reflection Layer */}
+            {/* Specular Sheen (Sweeps Across Obsidian Clearcoat with angle) */}
             <div
-              className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+              className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-60 transition-opacity duration-300"
               style={{
-                background: `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.12) 0%, transparent 65%)`
+                background: `linear-gradient(${angle}deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%)`
+              }}
+            />
+
+            {/* Glare Reflection Light */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse at ${glarePercent}% 40%, rgba(255, 255, 255, 0.18) 0%, transparent 60%)`
               }}
             />
 
@@ -386,31 +419,82 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
             <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/60 via-transparent to-neutral-950/60 pointer-events-none" />
           </div>
 
-          {/* Top Left Studio Identity Badge */}
-          <div className="absolute top-3 left-3 sm:top-6 sm:left-6 md:left-8 z-30 pointer-events-none max-w-[200px] sm:max-w-none">
-            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1.5">
+          {/* Top Left Studio Identity Badge with Live Angle & Auto-Spin Toggle */}
+          <div className="absolute top-3 left-3 sm:top-6 sm:left-6 md:left-8 z-30 pointer-events-auto flex flex-col gap-2 max-w-[240px] sm:max-w-none">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[9px] sm:text-[11px] tracking-[0.2em] font-mono uppercase font-bold text-white truncate">
-                Studio Photography // Real Asset
+                360° Real Turntable // {Math.round(angle)}°
               </span>
             </div>
-            <div className="text-[10px] sm:text-xs font-mono text-neutral-300 tracking-wider truncate">
-              {currentCar.spec}
+
+            <div className="flex items-center gap-2">
+              {/* Play / Pause Auto-Spin */}
+              <button
+                onClick={() => setIsAutoSpinning(!isAutoSpinning)}
+                className={`flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full border text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition shadow-lg ${
+                  isAutoSpinning
+                    ? 'bg-amber-400 text-black border-amber-400 font-bold'
+                    : 'bg-black/80 hover:bg-black text-amber-300 border-amber-400/60'
+                }`}
+              >
+                {isAutoSpinning ? (
+                  <>
+                    <Pause className="w-3 h-3" />
+                    <span>Pause Movement</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    <span>Auto 360° Movement</span>
+                  </>
+                )}
+              </button>
+
+              {/* 360 3D Model Switch */}
+              <button
+                onClick={() => setActiveView('360')}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/80 hover:bg-black border border-white/20 text-neutral-300 hover:text-white text-[10px] sm:text-[11px] font-mono uppercase tracking-wider transition shadow-lg"
+              >
+                <RotateCw className="w-3 h-3 text-amber-400" />
+                <span>3D Mesh</span>
+              </button>
             </div>
           </div>
 
-          {/* Direct 360 Activation Pill */}
-          <div className="absolute top-12 left-3 sm:top-20 sm:left-6 md:left-8 z-30 pointer-events-auto">
-            <button
-              onClick={() => setActiveView('360')}
-              className="group flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-black/80 hover:bg-black backdrop-blur-xl border border-amber-400/60 text-white shadow-xl transition active:scale-95 cursor-pointer"
-            >
-              <span className="text-xs sm:text-sm group-hover:scale-125 transition">🖐️</span>
-              <span className="text-[10px] sm:text-[11px] font-mono font-bold text-amber-300 uppercase tracking-wider">
-                360° 3D Studio
-              </span>
-              <RotateCw className="w-3 h-3 text-amber-400 group-hover:rotate-90 transition duration-300" />
-            </button>
+          {/* Hand Drag Gesture Hint (Fades after interaction) */}
+          {!hasInteracted && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none animate-bounce">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/85 backdrop-blur-xl border border-amber-400 text-white shadow-2xl">
+                <span className="text-base sm:text-lg">🖐️</span>
+                <span className="text-[10px] sm:text-xs font-mono font-bold tracking-wider text-amber-300 uppercase">
+                  Click & Drag with Hand to Rotate
+                </span>
+                <MoveHorizontal className="w-4 h-4 text-amber-400" />
+              </div>
+            </div>
+          )}
+
+          {/* Quick Snap Angles (Bottom Left of Stage) */}
+          <div className="absolute bottom-16 sm:bottom-20 left-3 sm:left-6 md:left-8 z-30 flex items-center gap-1 sm:gap-1.5 p-1 rounded-full bg-black/75 backdrop-blur-xl border border-white/15 pointer-events-auto shadow-xl">
+            {[
+              { label: 'Front', deg: 0 },
+              { label: '3/4', deg: 45 },
+              { label: 'Side', deg: 90 },
+              { label: 'Rear', deg: 180 }
+            ].map((snap) => (
+              <button
+                key={snap.label}
+                onClick={() => snapToAngle(snap.deg)}
+                className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono transition ${
+                  Math.abs(angle - snap.deg) < 15
+                    ? 'bg-amber-400 text-black font-bold'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {snap.label}
+              </button>
+            ))}
           </div>
 
           {/* Top Right Quick Stats HUD (Visible on Tablets & Desktops) */}
