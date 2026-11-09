@@ -590,39 +590,6 @@ export default function HeroVehicleShowcase({ onOpenBooking, onOpen360View }) {
             </div>
           </div>
 
-          {/* Tactical Hotspots on 3D Video */}
-          {currentCar.hotspots.map((h) => {
-            const isOpened = activeHotspot === h.id;
-            return (
-              <div
-                key={h.id}
-                style={{ left: h.x, top: h.y }}
-                className="absolute z-40 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                onClick={() => setActiveHotspot(isOpened ? null : h.id)}
-              >
-                <div className="relative flex items-center justify-center">
-                  <span className="absolute w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-400/30 animate-ping pointer-events-none" />
-                  <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-amber-400 text-black border-2 border-black flex items-center justify-center shadow-lg group-hover:scale-125 transition">
-                    <span className="w-1.5 h-1.5 rounded-full bg-black" />
-                  </span>
-                </div>
-
-                {isOpened && (
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-8 w-56 sm:w-64 p-3 sm:p-4 rounded-2xl bg-neutral-950/95 backdrop-blur-xl border border-white/20 text-white shadow-2xl animate-in fade-in zoom-in-95 pointer-events-auto">
-                    <div className="flex items-center justify-between mb-1 pb-1 border-b border-white/10">
-                      <span className="text-[10px] sm:text-[11px] font-mono uppercase font-bold text-amber-400">
-                        {h.title}
-                      </span>
-                    </div>
-                    <p className="text-[11px] sm:text-xs text-neutral-300 font-sans leading-relaxed">
-                      {h.desc}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
           {/* Center Bottom Car Headline & Reserve Overlay */}
           <div className="absolute bottom-28 sm:bottom-32 left-3 sm:left-6 md:left-8 z-20 max-w-[200px] sm:max-w-xl pointer-events-none">
             <span className="inline-block px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono uppercase tracking-widest font-bold bg-white/90 text-neutral-950 mb-1 sm:mb-2 shadow-sm">
